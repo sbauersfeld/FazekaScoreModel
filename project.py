@@ -3,19 +3,10 @@ import numpy as np
 import pydicom
 import matplotlib.pyplot as plt
 import os
+from sklearn.model_selection import train_test_split
 
-training_data_paths = ['Data/101_8_30_15', 
-                       'Data/106_9_13_15', 
-                       'Data/108_9_18_15',
-                       'Data/111_9_22_15',
-                       'Data/116_9_29_15',
-                       'Data/118_10_1_15']
-
-testing_data_paths = ['Data/122_10_20_15',
-                      'Data/128_10_27_15']
-
-num_train = len(training_data_paths)
-num_test = len(testing_data_paths)
+ALL_DATA = 'Data' # The root directory for our data
+NUM_PATIENTS = 8 # The number of patients we want to use
 
 def load_patient_scans(data_path):
     """
@@ -42,22 +33,24 @@ def get_train_test_data():
     Returns
     --------------------
     train input     -- numpy array with shape (n,) each entry is a numpy array of the nth patients scans
-    train output    -- numpy array with shape (n,) each entry is the labeled fazeka score for the nth patient
     test input      -- same as train input but with testing data
+    train output    -- numpy array with shape (n,) each entry is the labeled fazeka score for the nth patient
     test output     -- same as train output but with testing data
     """
-    train_input = np.empty((num_train), dtype=list) # create the numpy arrays
-    train_output = np.zeros((num_train))            # TODO: Fill in fazeka scores
-    test_input = np.empty((num_test), dtype=list)
-    test_output = np.zeros((num_test))
-    for i in range(num_train):
-        train_input[i] = load_patient_scans(training_data_paths[i]) # load all of a patients scans
-    for j in range(num_test):
-        test_input[j] = load_patient_scans(testing_data_paths[j])
-    return train_input, train_output, test_input, test_output
+    all_data_input = np.empty((NUM_PATIENTS), dtype=list)
+    all_data_labels = np.zeros((NUM_PATIENTS)) #TODO: Fill in fazeka scores
+    i=0
+    for s in os.listdir(ALL_DATA):
+        if i >= NUM_PATIENTS: # use num_patients to limit the amount of data used
+            break
+
+        all_data_input[i] = load_patient_scans(ALL_DATA + '/' + s) # load the data for each patient
+        i += 1
+
+    return train_test_split(all_data_input, all_data_labels, test_size=0.2) # split data into training and testing set
 
 def main():
-    train_input, train_output, test_input, test_output = get_train_test_data()
+    train_input, test_input, train_output, test_output = get_train_test_data()
     print(np.shape(train_input))
     print(np.shape(train_input[0]))
     # for scan in train_input[0]:
