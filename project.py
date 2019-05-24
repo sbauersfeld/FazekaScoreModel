@@ -27,50 +27,14 @@ NUM_SCANS = 12 # TODO: Set this to the correct number of scans we will use per p
 IMAGE_WIDTH = 230 # TODO: Set this value
 IMAGE_HEIGHT = 256 # TODO: Set this value
 
-def remove_keymap_conflicts(new_keys_set):
-    for prop in plt.rcParams:
-        if prop.startswith('keymap.'):
-            keys = plt.rcParams[prop]
-            remove_list = set(keys) & new_keys_set
-            for key in remove_list:
-                keys.remove(key)
-
-def multi_slice_viewer(volume):
-    remove_keymap_conflicts({'j', 'k'})
-    fig, ax = plt.subplots()
-    ax.volume = volume
-    ax.index = volume.shape[0] // 2
-    ax.imshow(volume[ax.index], cmap='gray')
-    fig.canvas.mpl_connect('key_press_event', process_key)
-
-def process_key(event):
-    fig = event.canvas.figure
-    ax = fig.axes[0]
-    if event.key == 'j':
-        previous_slice(ax)
-        print(ax.index)
-    elif event.key == 'k':
-        next_slice(ax)
-    fig.canvas.draw()
-
-def previous_slice(ax):
-    volume = ax.volume
-    ax.index = (ax.index - 1) % volume.shape[0]  # wrap around using %
-    ax.images[0].set_array(volume[ax.index])
-
-def next_slice(ax):
-    volume = ax.volume
-    ax.index = (ax.index + 1) % volume.shape[0]
-    ax.images[0].set_array(volume[ax.index])
-
 def main():
     data = util.load_template_data("Data/GG-366-FLAIR-1.0mm.nii")
     print(data.shape)
-    multi_slice_viewer(data)
+    util.multi_slice_viewer(data)
 
     pat_data = util.load_patient_scans("Data/Original/101_8_30_15")
     print(np.shape(pat_data))
-    multi_slice_viewer(pat_data)
+    util.multi_slice_viewer(pat_data)
     plt.show()
 
 
