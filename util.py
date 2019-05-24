@@ -25,7 +25,7 @@ def load_patient_scans(data_path):
     
     Returns
     --------------------
-        dcm scans    -- numpy array pixel arrays with shape (x,y,n), 
+        dcm scans    -- numpy array pixel arrays with shape (n,x,y), 
                         one pixel array for each of the n patient images
     """
     dcmImages = [pydicom.read_file(data_path + '/' + s) for s in os.listdir(data_path)] # read the dicom image
@@ -47,8 +47,9 @@ def load_processed_data(data_path):
     
     Returns
     --------------------
-        data        -- numpy array pixel arrays with shape (x,y,n), 
-                        one pixel array for each of the n patient images
+        data        -- numpy array pixel arrays with shape (m,n,x,y), 
+                       for each of the m patients, get one x,y pixel 
+                       array for each of the n regularized images
     """
     data = loadmat(data_path)['data'] # load the data from the mat file
     return data
@@ -116,6 +117,13 @@ def remove_keymap_conflicts(new_keys_set):
                 keys.remove(key)
 
 def multi_slice_viewer(volume): # this lets us look through all slices in a 3D stack
+    """
+    Plot 3D image. View difference slices with keys j and k
+        
+    Parameters
+    --------------------
+        volume    -- 3D image to view, with slices along first axis
+    """
     remove_keymap_conflicts({'j', 'k'})
     fig, ax = plt.subplots()
     ax.volume = volume
@@ -143,6 +151,13 @@ def next_slice(ax):
     ax.images[0].set_array(volume[ax.index])
 
 def multi_slice_subplot(data): # plot all slices on a subplot
+    """
+    Plot 3D image, with each slice on a separate subplot
+        
+    Parameters
+    --------------------
+        volume    -- 3D image to view, with slices along first axis
+    """
     n,y,x = np.shape(data)
     x_lim = 4
     y_lim = int(np.ceil(n/x_lim))
@@ -152,3 +167,19 @@ def multi_slice_subplot(data): # plot all slices on a subplot
         for j in range(x_lim):
             axarr[i,j].imshow(data[index], cmap='gray')
             index += 1
+
+
+# from skimage import segmentation as seg
+# import skimage.color as color
+# from skimage.segmentation import mark_boundaries
+# from skimage import io
+
+# def segment():
+    # inum = 15
+
+    # image_slic = seg.slic(train_input[0][:,:,inum],compactness=0.001,n_segments=1000,multichannel=False,slic_zero=True)
+    # image_slic2 = color.label2rgb(image_slic, train_input[0][:,:,inum], kind='avg')
+    
+    # out = seg.mark_boundaries(image_slic2, image_slic, color=(0,0,1))
+    # plt.imshow(image_slic2,cmap='gray',interpolation=None)
+    # plt.imshow(out, interpolation=None,alpha=0.25)

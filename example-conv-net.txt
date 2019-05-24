@@ -1,3 +1,12 @@
+# from sklearn.model_selection import train_test_split
+# import keras
+# from keras.utils import to_categorical
+# from keras.models import Sequential,Input,Model
+# from keras.layers import Dense, Dropout, Flatten
+# from keras.layers import Conv2D, MaxPooling2D, Conv3D, MaxPooling3D, GlobalMaxPooling3D
+# from keras.layers.normalization import BatchNormalization
+# from keras.layers.advanced_activations import LeakyReLU
+
 # set up conv net TODO: Set up correct parameters, cnn network, regularization, etc
     # batch_size = 10
     # epochs = 20
