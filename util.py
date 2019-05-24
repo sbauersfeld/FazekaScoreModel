@@ -6,18 +6,14 @@ import nibabel as nib
 import matplotlib.pyplot as plt
 
 ALL_DATA = 'Data' # The root directory for our data
-PREPROCESSED_DATA = 'Data/Preprocessed'
+PREPROCESSED_DATA = 'Data/Preprocessed/regularized_data'
 ORIGINAL_DATA = 'Data/Original'
-# NUM_PATIENTS = 1 # The number of patients we want to use
-# NUM_CLASSES = 6 # The number of unique fazeka scores
-# NUM_SCANS = 12 # TODO: Set this to the correct number of scans we will use per patient
+TEMPLATE_DATA = "Data/GG-366-FLAIR-1.0mm.nii"
 SKIP_BOTTOM = 10
 SKIP_TOP = 1
 TEMPLATE_BOTTOM = 36
 TEMPLATE_TOP = 156
 TEMPLATE_ITER = 10
-# IMAGE_WIDTH = 230 # TODO: Set this value
-# IMAGE_HEIGHT = 256 # TODO: Set this value
 
 def load_patient_scans(data_path):
     """
@@ -54,7 +50,7 @@ def load_processed_data(data_path):
         data        -- numpy array pixel arrays with shape (x,y,n), 
                         one pixel array for each of the n patient images
     """
-    data = loadmat(data_path)['stack'] # load the data TODO: change this to 'stack'
+    data = loadmat(data_path)['data'] # load the data from the mat file
     return data
 
 def load_template_data(path):
@@ -62,9 +58,9 @@ def load_template_data(path):
     data = img.get_data()
     _, ext = os.path.splitext(path)
     print(ext)
-    if ext == ".nii":
-        data = data.T
-        data = data[TEMPLATE_BOTTOM:TEMPLATE_TOP:TEMPLATE_ITER]
+    if ext == ".nii": # this is the template version we will be using
+        data = data.T # it needs to be formatted correctly
+        data = data[TEMPLATE_BOTTOM:TEMPLATE_TOP:TEMPLATE_ITER] # select the slices we want to use
         data = np.fliplr(data)
     return data
 
@@ -119,7 +115,7 @@ def remove_keymap_conflicts(new_keys_set):
             for key in remove_list:
                 keys.remove(key)
 
-def multi_slice_viewer(volume):
+def multi_slice_viewer(volume): # this lets us look through all slices in a 3D stack
     remove_keymap_conflicts({'j', 'k'})
     fig, ax = plt.subplots()
     ax.volume = volume
@@ -146,7 +142,7 @@ def next_slice(ax):
     ax.index = (ax.index + 1) % volume.shape[0]
     ax.images[0].set_array(volume[ax.index])
 
-def multi_slice_subplot(data):
+def multi_slice_subplot(data): # plot all slices on a subplot
     n,y,x = np.shape(data)
     x_lim = 4
     y_lim = int(np.ceil(n/x_lim))
