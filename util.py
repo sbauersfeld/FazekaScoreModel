@@ -15,7 +15,7 @@ TEMPLATE_BOTTOM = 36
 TEMPLATE_TOP = 156
 TEMPLATE_ITER = 10
 
-def load_patient_scans(data_path):
+def load_patient_scans(data_path, skip_bottom=SKIP_BOTTOM, skip_top=SKIP_TOP):
     """
     Load patient data.
         
@@ -30,7 +30,7 @@ def load_patient_scans(data_path):
     """
     dcmImages = [pydicom.read_file(data_path + '/' + s) for s in os.listdir(data_path)] # read the dicom image
     dcmImages.sort(key = lambda image: image.ImagePositionPatient[2]) # ensure the list is sorted in z-dimension (might not be needed)
-    dcmImages = dcmImages[SKIP_BOTTOM:len(dcmImages)-SKIP_TOP]
+    dcmImages = dcmImages[skip_bottom:len(dcmImages)-skip_top]
     # print(dcmImages[0].ImagePositionPatient[2])
     dcm_scans = [image.pixel_array for image in dcmImages] # get the pixel array from each dicom image
     dcm_scans = np.asarray(dcm_scans, dtype=np.float32)
@@ -167,7 +167,10 @@ def multi_slice_subplot(data): # plot all slices on a subplot
         for j in range(x_lim):
             axarr[i,j].imshow(data[index], cmap='gray')
             index += 1
-
+            if index >= n:
+                break
+        if index >= n:
+            break
 
 # from skimage import segmentation as seg
 # import skimage.color as color
