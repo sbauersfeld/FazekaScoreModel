@@ -76,6 +76,19 @@ def get_data_split(data, labels):
     test_output = to_categorical(test_output, num_classes=4)
     return train_input, test_input, train_output, test_output
 
+def tile_images(data):
+    n,m,y,x = np.shape(data)
+    output_images = np.zeros((n, 4*y, 3*x))
+    for i in range(n):
+        num_tiles = 12
+        index = 0
+        for j in range(4):
+            for k in range(3):
+                print(np.shape(output_images[i, j*y:(j+1)*y, k*x:(k+1)*x]))
+                output_images[i, j*y:(j+1)*y, k*x:(k+1)*x] = data[i,index]
+                index += 1
+    return output_images
+
 def main():
     data = util.load_processed_data(util.PREPROCESSED_DATA) # this is how we can load the data for conv nets
     n,m,y,x = np.shape(data)
