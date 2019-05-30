@@ -37,7 +37,7 @@ def main():
     # base_model.trainable = False
     print("Number of layers in the base model: ", len(base_model.layers))
     # Fine tune from this layer onwards
-    fine_tune_at = 128
+    fine_tune_at = 130
 
     # Freeze all the layers before the `fine_tune_at` layer
     for layer in base_model.layers[:fine_tune_at]:
@@ -45,10 +45,11 @@ def main():
 
     # base_model.summary()
 
-    global_average_layer = keras.layers.GlobalAveragePooling2D()
+    global_average_layer = keras.layers.MaxPooling2D()
+    flat_layer = keras.layers.Flatten()
     prediction_layer = keras.layers.Dense(4, activation='softmax')
 
-    fazeka_model = keras.Sequential([base_model, global_average_layer, prediction_layer])
+    fazeka_model = keras.Sequential([base_model, global_average_layer, flat_layer, prediction_layer])
     fazeka_model.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adam(),metrics=['accuracy'])
     fazeka_model.summary()
 
@@ -66,7 +67,7 @@ def main():
     test_output = to_categorical(test_output, num_classes=4)
 
     batch_size = 10
-    epochs = 20
+    epochs = 5
     fazeka_train = fazeka_model.fit(train_input, train_output, batch_size=batch_size,epochs=epochs,verbose=1,validation_data=(test_input, test_output))
     test_eval = fazeka_model.evaluate(test_input, test_output, verbose=0)
     print('Test loss:', test_eval[0])
