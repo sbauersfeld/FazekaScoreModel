@@ -9,6 +9,9 @@ import keras
 def main():
     data = util.load_processed_data(util.PREPROCESSED_DATA) # this is how we can load the data for conv nets
     n,m,y,x = np.shape(data)
+    peri_vals = util.load_patient_labels(util.LABEL_DATA,"1","peri") #this outputs the average periventricular Fazekas score
+    deep_vals = util.load_patient_labels(util.LABEL_DATA,"1","deep") #this outputs the average deep Fazekas score
+    print(np.shape(peri_vals))
     print(np.shape(data))
     # util.multi_slice_subplot(data[1])
     # util.multi_slice_subplot(data[12])

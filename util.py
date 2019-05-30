@@ -4,11 +4,13 @@ import numpy as np
 from scipy.io import loadmat
 import nibabel as nib
 import matplotlib.pyplot as plt
+import xlrd
 
 ALL_DATA = 'Data' # The root directory for our data
 PREPROCESSED_DATA = 'Data/Preprocessed/regularized_data'
 ORIGINAL_DATA = 'Data/Original'
 TEMPLATE_DATA = "Data/GG-366-FLAIR-1.0mm.nii"
+LABEL_DATA = 'Data/Scores/All_Fazekas_Data.xlsx'
 SKIP_BOTTOM = 10
 SKIP_TOP = 1
 TEMPLATE_BOTTOM = 36
@@ -36,6 +38,37 @@ def load_patient_scans(data_path, skip_bottom=SKIP_BOTTOM, skip_top=SKIP_TOP):
     dcm_scans = np.asarray(dcm_scans, dtype=np.float32)
     # dcm_scans = np.moveaxis(dcm_scans, 0, 2) # swap axes for inputting data to conv nets
     return dcm_scans
+
+#RESEARCHER OPTIONS: "1","2", or any other string
+#Researcher 1 or 2 will only take the scores from that researcher, otherwise will take the averaged scores
+#TYPE OPTIONS: "peri", "deep", ""
+# peri will take periventricular score, deep will take deep score, otherwise will take the combined scores (0-6)
+def load_patient_labels(data_path, researcher, type):
+    wb = xlrd.open_workbook(data_path)
+    sheet = wb.sheet_by_index(0)
+    if (researcher=="1"):
+        if(type=="peri"):
+            labels = np.array(sheet.col_values(1,1))
+        elif(type=="deep"):
+            labels = np.array(sheet.col_values(2,1))
+        else:
+            labels = np.array(sheet.col_values(3,1))
+    elif (researcher=="2"):
+        if(type=="peri"):
+            labels = np.array(sheet.col_values(4,1))
+        elif(type=="deep"):
+            labels = np.array(sheet.col_values(5,1))
+        else:
+            labels = np.array(sheet.col_values(6,1))
+    else:
+        if(type=="peri"):
+            labels = np.array(sheet.col_values(7,1))
+        elif(type=="deep"):
+            labels = np.array(sheet.col_values(8,1))
+        else:
+            labels = np.array(sheet.col_values(9,1))
+    return labels
+
 
 def load_processed_data(data_path):
     """
