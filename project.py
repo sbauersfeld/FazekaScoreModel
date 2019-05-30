@@ -13,8 +13,6 @@ from keras.callbacks import ModelCheckpoint
 
 import keras.backend as K
 
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
 # TODO: normalize images
 # def normalize(data):
 # consider tf.image.per_image_standardization(image)
@@ -93,9 +91,31 @@ def unravel_scans(data, labels):
 
     return all_data_input, all_data_labels
 
+def build_train_wrapper(data, original_labels, transform_function, load_weights_path="", save_weights_path="", batch_size=10, epochs=20):
+    input_data, labels = transform_function(data, original_labels)
+    n,y,x,z = np.shape(input_data)
+    print(np.shape(input_data))
+
+    train_input, test_input, train_output, test_output = get_data_split(input_data, labels)
+
+    # include non-empty weights path if you want to load our pretrained model
+    fazeka_model = build_model((y,x,3), trainable=False, weights_path=load_weights_path)
+    fazeka_model.summary()
+
+    # train the model
+    if save_weights_path == "":
+        if transform_function == unravel_scans:
+            save_weights_path == "SavedWeights/unravel_weights_best"
+        elif transform_function == tile_images:
+            save_weights_path = "SavedWeights/tile_weights_best"
+
+    fazeka_train = train_model(fazeka_model, train_input, test_input, train_output, test_output, 
+        filepath=save_weights_path, batch_size=batch_size, epochs=epochs)
+
+    return fazeka_model, test_input, test_output
+
 def main():
     data = util.load_processed_data(util.PREPROCESSED_DATA) # this is how we can load the data for conv nets
-    # n,m,y,x = np.shape(data)
     peri_vals = util.load_patient_labels(util.LABEL_DATA,"1","peri") #this outputs the average periventricular Fazekas score
     deep_vals = util.load_patient_labels(util.LABEL_DATA,"1","deep") #this outputs the average deep Fazekas score
     # util.multi_slice_subplot(data[1])
@@ -103,26 +123,15 @@ def main():
     # util.multi_slice_subplot(data[40])
     # plt.show()
 
-    # create input data from our data set
-    input_data, labels = tile_images(data, peri_vals)
-    n,y,x,z = np.shape(input_data)
-    print(np.shape(input_data))
-
-    train_input, test_input, train_output, test_output = get_data_split(input_data, labels)
-
-    # include non-empty weights path if you want to load our pretrained model
-    fazeka_model = build_model((y,x,3), trainable=False, weights_path="")
-    fazeka_model.summary()
-
-    # train the model
-    fazeka_train = train_model(fazeka_model, train_input, test_input, train_output, test_output, 
-        filepath="SavedWeights/tile_weights_best", batch_size=3, epochs=3)
-
-    # # test the model
+    # test the model
+    fazeka_model, test_input, test_output = build_train_wrapper(data, peri_vals, tile_images, 
+        load_weights_path="", save_weights_path="", batch_size=5, epochs=20)
+    
     K.set_learning_phase(0)
     test_eval = fazeka_model.evaluate(test_input, test_output, verbose=0)
     print('Test loss:', test_eval[0])
     print('Test accuracy:', test_eval[1])
 
 if __name__ == '__main__':
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     main()
