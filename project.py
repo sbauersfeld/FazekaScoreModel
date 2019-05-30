@@ -6,6 +6,17 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import keras
 
+# TODO: normalize images
+# def normalize(data):
+# consider tf.image.per_image_standardization(image)
+
+# TODO: create tiled image from all 12 scans
+# def tile_images(data):
+
+# TODO: create multiple input model
+
+# TODO: visualize results, training + testing accuracy, etc
+
 def main():
     data = util.load_processed_data(util.PREPROCESSED_DATA) # this is how we can load the data for conv nets
     n,m,y,x = np.shape(data)
