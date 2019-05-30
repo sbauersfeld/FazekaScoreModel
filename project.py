@@ -13,12 +13,11 @@ from keras.callbacks import ModelCheckpoint
 
 import keras.backend as K
 
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 # TODO: normalize images
 # def normalize(data):
 # consider tf.image.per_image_standardization(image)
-
-# TODO: create tiled image from all 12 scans
-# def tile_images(data):
 
 # TODO: create multiple input model
 
@@ -58,40 +57,45 @@ def train_model(model, train_input, test_input, train_output, test_output, filep
     return fazeka_train
 
 def get_data_split(data, labels):
-    n,m,y,x = np.shape(data)
-    for i in range(n):
-        for j in range(m):
-            data[i,j] = keras.applications.resnet50.preprocess_input(data[i,j]) # make sure the data is compatible with resnet
+    # n,m,y,x = np.shape(data)
+    # for i in range(n):
+    #     for j in range(m):
+            # data[i,j] = keras.applications.resnet50.preprocess_input(data[i,j]) # make sure the data is compatible with resnet
+    data = keras.applications.resnet50.preprocess_input(data)
 
+    # print(all_data_input.shape)
+    # print(all_data_labels.shape)
+    train_input, test_input, train_output, test_output = train_test_split(data, labels, test_size=0.2)
+    train_output = to_categorical(train_output, num_classes=4)
+    test_output = to_categorical(test_output, num_classes=4)
+    return train_input, test_input, train_output, test_output
+
+def tile_images(data, labels):
+    n,m,y,x = np.shape(data)
+    output_images = np.zeros((n, 4*y, 3*x))
+    for i in range(n):
+        index = 0
+        for j in range(4):
+            for k in range(3):
+                output_images[i, j*y:(j+1)*y, k*x:(k+1)*x] = data[i,index]
+                index += 1
+
+    output_images = np.repeat(output_images[:,:,:,np.newaxis], 3, axis=3)
+    return output_images, labels
+
+def unravel_scans(data, labels):
+    n,m,y,x = np.shape(data)
     all_data_input = np.zeros((n*m,y,x,3), dtype = np.float32) # make each scan its own input
     all_data_labels = np.zeros((n*m))
     for i in range(n):
         all_data_input[i*m:(i+1)*m] = np.repeat(data[i,:,:,:,np.newaxis], 3, axis=3) # replicate greyscale images to make 3 channels
         all_data_labels[i*m:(i+1)*m] = np.repeat(labels[i], m)
 
-    # print(all_data_input.shape)
-    # print(all_data_labels.shape)
-    train_input, test_input, train_output, test_output = train_test_split(all_data_input, all_data_labels, test_size=0.2)
-    train_output = to_categorical(train_output, num_classes=4)
-    test_output = to_categorical(test_output, num_classes=4)
-    return train_input, test_input, train_output, test_output
-
-def tile_images(data):
-    n,m,y,x = np.shape(data)
-    output_images = np.zeros((n, 4*y, 3*x))
-    for i in range(n):
-        num_tiles = 12
-        index = 0
-        for j in range(4):
-            for k in range(3):
-                print(np.shape(output_images[i, j*y:(j+1)*y, k*x:(k+1)*x]))
-                output_images[i, j*y:(j+1)*y, k*x:(k+1)*x] = data[i,index]
-                index += 1
-    return output_images
+    return all_data_input, all_data_labels
 
 def main():
     data = util.load_processed_data(util.PREPROCESSED_DATA) # this is how we can load the data for conv nets
-    n,m,y,x = np.shape(data)
+    # n,m,y,x = np.shape(data)
     peri_vals = util.load_patient_labels(util.LABEL_DATA,"1","peri") #this outputs the average periventricular Fazekas score
     deep_vals = util.load_patient_labels(util.LABEL_DATA,"1","deep") #this outputs the average deep Fazekas score
     # util.multi_slice_subplot(data[1])
@@ -100,17 +104,21 @@ def main():
     # plt.show()
 
     # create input data from our data set
-    train_input, test_input, train_output, test_output = get_data_split(data, peri_vals)
+    input_data, labels = tile_images(data, peri_vals)
+    n,y,x,z = np.shape(input_data)
+    print(np.shape(input_data))
 
-    # include non-empty weights path if you want to load pretrained model
-    fazeka_model = build_model((y,x,3), trainable=False, weights_path="SavedWeights/weights_best.hdf5")
+    train_input, test_input, train_output, test_output = get_data_split(input_data, labels)
+
+    # include non-empty weights path if you want to load our pretrained model
+    fazeka_model = build_model((y,x,3), trainable=False, weights_path="")
     fazeka_model.summary()
 
     # train the model
     fazeka_train = train_model(fazeka_model, train_input, test_input, train_output, test_output, 
-        filepath="SavedWeights/weights_best", batch_size=10, epochs=5)
+        filepath="SavedWeights/tile_weights_best", batch_size=3, epochs=3)
 
-    # test the model
+    # # test the model
     K.set_learning_phase(0)
     test_eval = fazeka_model.evaluate(test_input, test_output, verbose=0)
     print('Test loss:', test_eval[0])
