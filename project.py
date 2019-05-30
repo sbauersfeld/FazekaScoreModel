@@ -34,7 +34,7 @@ def build_model(img_shape, trainable=False, fine_tune_at=170, weights_path=""):
         for layer in base_model.layers[:fine_tune_at]:
             layer.trainable =  False
 
-    base_model.summary()
+    # base_model.summary()
 
     global_average_layer = keras.layers.GlobalAveragePooling2D()
     d_layer = keras.layers.Dense(1024, activation='relu')
@@ -50,7 +50,7 @@ def build_model(img_shape, trainable=False, fine_tune_at=170, weights_path=""):
 
 def train_model(model, train_input, test_input, train_output, test_output, filepath, batch_size=10, epochs=35):
     K.set_learning_phase(1)
-    filepath += datetime.datetime.now().strftime("%m%d-%H%M%S") + ".hdf5"
+    filepath += "_" + datetime.datetime.now().strftime("%m%d-%H%M%S") + ".hdf5"
     print("Saving weights to file:", filepath)
     checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
     callbacks_list = [checkpoint]
@@ -69,8 +69,8 @@ def get_data_split(data, labels):
         all_data_input[i*m:(i+1)*m] = np.repeat(data[i,:,:,:,np.newaxis], 3, axis=3) # replicate greyscale images to make 3 channels
         all_data_labels[i*m:(i+1)*m] = np.repeat(labels[i], m)
 
-    print(all_data_input.shape)
-    print(all_data_labels.shape)
+    # print(all_data_input.shape)
+    # print(all_data_labels.shape)
     train_input, test_input, train_output, test_output = train_test_split(all_data_input, all_data_labels, test_size=0.2)
     train_output = to_categorical(train_output, num_classes=4)
     test_output = to_categorical(test_output, num_classes=4)
@@ -81,8 +81,6 @@ def main():
     n,m,y,x = np.shape(data)
     peri_vals = util.load_patient_labels(util.LABEL_DATA,"1","peri") #this outputs the average periventricular Fazekas score
     deep_vals = util.load_patient_labels(util.LABEL_DATA,"1","deep") #this outputs the average deep Fazekas score
-    print(np.shape(peri_vals))
-    print(np.shape(data))
     # util.multi_slice_subplot(data[1])
     # util.multi_slice_subplot(data[12])
     # util.multi_slice_subplot(data[40])
@@ -92,20 +90,18 @@ def main():
     train_input, test_input, train_output, test_output = get_data_split(data, peri_vals)
 
     # include non-empty weights path if you want to load pretrained model
-    fazeka_model = build_model((y,x,3), trainable=False, weights_path="")
+    fazeka_model = build_model((y,x,3), trainable=False, weights_path="SavedWeights/weights_best.hdf5")
     fazeka_model.summary()
 
     # train the model
     fazeka_train = train_model(fazeka_model, train_input, test_input, train_output, test_output, 
-        filepath="SavedWeights/weights_best", batch_size=10, epochs=35)
+        filepath="SavedWeights/weights_best", batch_size=10, epochs=5)
 
     # test the model
     K.set_learning_phase(0)
     test_eval = fazeka_model.evaluate(test_input, test_output, verbose=0)
     print('Test loss:', test_eval[0])
-    print('Test accuracy:', test_eval[1]) 
-
-    # fazeka_model.save('test1.h5')
+    print('Test accuracy:', test_eval[1])
 
 if __name__ == '__main__':
     main()
