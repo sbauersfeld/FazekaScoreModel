@@ -8,6 +8,8 @@ import xlrd
 
 ALL_DATA = 'Data' # The root directory for our data
 PREPROCESSED_DATA = 'Data/Preprocessed/regularized_data'
+NORMALIZED_DATA_Z_SCORES = 'Data/Normalized/normalized_z_scores'
+PREPROCESSED_Z_SCORES = 'Data/Preprocessed/regularized_z_scores'
 ORIGINAL_DATA = 'Data/Original'
 TEMPLATE_DATA = "Data/GG-366-FLAIR-1.0mm.nii"
 LABEL_DATA = 'Data/Scores/All_Fazekas_Data.xlsx'

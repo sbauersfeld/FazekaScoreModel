@@ -115,7 +115,7 @@ def build_train_wrapper(data, original_labels, transform_function, load_weights_
     return fazeka_model, test_input, test_output
 
 def main():
-    data = util.load_processed_data(util.PREPROCESSED_DATA) # this is how we can load the data for conv nets
+    data = util.load_processed_data(util.PREPROCESSED_Z_SCORES) # this is how we can load the data for conv nets
     peri_vals = util.load_patient_labels(util.LABEL_DATA,"1","peri") #this outputs the average periventricular Fazekas score
     deep_vals = util.load_patient_labels(util.LABEL_DATA,"1","deep") #this outputs the average deep Fazekas score
     # util.multi_slice_subplot(data[1])
@@ -124,13 +124,13 @@ def main():
     # plt.show()
 
     # test the model
-    fazeka_model, test_input, test_output = build_train_wrapper(data, peri_vals, tile_images, 
-        load_weights_path="", save_weights_path="", batch_size=5, epochs=20)
+    # fazeka_model, test_input, test_output = build_train_wrapper(data, peri_vals, tile_images, 
+    #     load_weights_path="", save_weights_path="", batch_size=5, epochs=20)
     
-    K.set_learning_phase(0)
-    test_eval = fazeka_model.evaluate(test_input, test_output, verbose=0)
-    print('Test loss:', test_eval[0])
-    print('Test accuracy:', test_eval[1])
+    # K.set_learning_phase(0)
+    # test_eval = fazeka_model.evaluate(test_input, test_output, verbose=0)
+    # print('Test loss:', test_eval[0])
+    # print('Test accuracy:', test_eval[1])
 
 if __name__ == '__main__':
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'

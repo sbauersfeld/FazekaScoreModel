@@ -1,4 +1,4 @@
 .vscode
-regularized_data.mat
+*.mat
 *.h5
 *.hdf5
