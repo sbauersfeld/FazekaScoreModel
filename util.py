@@ -5,6 +5,7 @@ from scipy.io import loadmat
 import nibabel as nib
 import matplotlib.pyplot as plt
 import xlrd
+import dicom2nifti
 
 ALL_DATA = 'Data' # The root directory for our data
 PREPROCESSED_DATA = 'Data/Preprocessed/regularized_data'
@@ -41,6 +42,23 @@ def load_patient_scans(data_path, skip_bottom=SKIP_BOTTOM, skip_top=SKIP_TOP):
     dcm_scans = np.asarray(dcm_scans, dtype=np.float32)
     # dcm_scans = np.moveaxis(dcm_scans, 0, 2) # swap axes for inputting data to conv nets
     return dcm_scans
+
+def generate_nifti_images(data_path, skip_bottom=SKIP_BOTTOM, skip_top=SKIP_TOP):
+    dirname = data_path
+    fols = os.listdir(dirname)
+    for folname in fols:
+        path = os.path.join(NIFTI_DATA,folname)
+        if (os.path.isdir(path) == False):
+            os.mkdir(path)
+        dicom2nifti.convert_directory(os.path.join(dirname,folname), path, compression=True, reorient=True)
+        #files = os.listdir(os.path.join(dirname,folname))
+        #ds_list.append([pydicom.read_file(os.path.join(dirname, folname,file))] for file in files)
+
+def show_slices(slices):
+   # Function to display row of nifti image slices 
+    fig, axes = plt.subplots(1, len(slices))
+    for i, slice in enumerate(slices):
+        axes[i].imshow(slice.T, cmap="gray", origin="lower")
 
 #RESEARCHER OPTIONS: "1","2", or any other string
 #Researcher 1 or 2 will only take the scores from that researcher, otherwise will take the averaged scores
