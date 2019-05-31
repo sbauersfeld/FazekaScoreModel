@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import scipy as scp
 
 import SimpleITK as sitk
+from skimage import segmentation as seg
+from skimage import color
+from skimage import exposure
 
 # TODO: determine best parameters, figure out patient 151
 def register_image(fixed_image, moving_image):
@@ -51,6 +54,10 @@ def main():
             a,b,c = np.shape(data)
             y = (b - image_height)/2
             x = (c - image_width)/2
+            # for i in range(len(data)):
+            #     data[i] = exposure.rescale_intensity(data[i], in_range='int32')
+            #     image_slic = seg.slic(data[i],compactness=0.00001,n_segments=3000,multichannel=False,slic_zero=False)
+            #     data[i] = color.label2rgb(image_slic, data[i], kind='avg')
             reg_data = data[a-num_scans:,y:b-y,x:c-x] # this is a hack, just resizing to fit dimensions
             # util.multi_slice_subplot(reg_data)
             # plt.show()
@@ -58,17 +65,21 @@ def main():
             data = util.load_processed_data(util.NORMALIZED_DATA_Z_SCORES + "/" + data_paths[i])[0] # load the patient data
             data = data.T
             data = np.fliplr(data)
-            # for i range(len(data)):
-                # image_slic = seg.slic(data[i],compactness=0.001,n_segments=1000,multichannel=False,slic_zero=True)
-                # data[i] = color.label2rgb(image_slic, data[i], kind='avg')
+            # print (data.dtype)
+            # for i in range(len(data)):
+            #     data[i] = exposure.rescale_intensity(data[i], in_range='int32')
+            #     image_slic = seg.slic(data[i],compactness=0.00001,n_segments=3000,multichannel=False,slic_zero=False)
+            #     data[i] = color.label2rgb(image_slic, data[i], kind='avg')
             reg_data = register_image(template_data, data) # run the elastix regularizer
+            # util.multi_slice_viewer(reg_data)
+            # plt.show()
         if i == 0:
             mat_data[i] = reg_data
         else: # create the data matrix
             mat_data = np.concatenate((mat_data, np.reshape(reg_data, (1, num_scans, image_height, image_width))))
 
     print("Regularized data shape is: {}".format(mat_data.shape))
-    filename = util.PREPROCESSED_Z_SCORES
+    filename = util.PREPROCESSED_SEGMENTED
     mat_dict = {}
     mat_dict['data'] = mat_data
     scp.io.savemat(filename, mat_dict)

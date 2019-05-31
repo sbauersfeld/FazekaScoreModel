@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import datetime
 import tensorflow as tf
 import keras
+import scipy as scp
 
 from sklearn.model_selection import train_test_split
 from keras.utils import to_categorical
@@ -47,8 +48,6 @@ def build_model(img_shape, trainable=False, fine_tune_at=170, weights_path=""):
 
 def train_model(model, train_input, test_input, train_output, test_output, filepath, batch_size=10, epochs=35):
     K.set_learning_phase(1)
-    filepath += "_" + datetime.datetime.now().strftime("%m%d-%H%M%S") + ".hdf5"
-    print("Saving weights to file:", filepath)
     checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
     callbacks_list = [checkpoint]
     fazeka_train = model.fit(train_input, train_output, callbacks=callbacks_list, batch_size=batch_size,epochs=epochs,verbose=1,validation_data=(test_input, test_output))
@@ -63,7 +62,10 @@ def get_data_split(data, labels):
 
     # print(all_data_input.shape)
     # print(all_data_labels.shape)
-    train_input, test_input, train_output, test_output = train_test_split(data, labels, test_size=0.2)
+    indices = np.arange(len(data))
+    train_input, test_input, train_output, test_output, train_idx, test_idx = train_test_split(data, labels, indices, test_size=0.2)
+    print("Training with samples: ", train_idx)
+    print("Testing with samples: ", test_idx)
     train_output = to_categorical(train_output, num_classes=4)
     test_output = to_categorical(test_output, num_classes=4)
     return train_input, test_input, train_output, test_output
@@ -94,7 +96,7 @@ def unravel_scans(data, labels):
 def build_train_wrapper(data, original_labels, transform_function, load_weights_path="", save_weights_path="", batch_size=10, epochs=20):
     input_data, labels = transform_function(data, original_labels)
     n,y,x,z = np.shape(input_data)
-    print(np.shape(input_data))
+    print("Input data shape: ", np.shape(input_data))
 
     train_input, test_input, train_output, test_output = get_data_split(input_data, labels)
 
@@ -104,11 +106,14 @@ def build_train_wrapper(data, original_labels, transform_function, load_weights_
 
     # train the model
     if save_weights_path == "":
+        ext = "_" + datetime.datetime.now().strftime("%m%d-%H%M%S") + ".hdf5"
         if transform_function == unravel_scans:
             save_weights_path == "SavedWeights/unravel_weights_best"
         elif transform_function == tile_images:
             save_weights_path = "SavedWeights/tile_weights_best"
+        save_weights_path += ext
 
+    print("Saving weights to file:", save_weights_path)
     fazeka_train = train_model(fazeka_model, train_input, test_input, train_output, test_output, 
         filepath=save_weights_path, batch_size=batch_size, epochs=epochs)
 
@@ -124,14 +129,28 @@ def main():
     # plt.show()
 
     # test the model
-    # fazeka_model, test_input, test_output = build_train_wrapper(data, peri_vals, tile_images, 
-    #     load_weights_path="", save_weights_path="", batch_size=5, epochs=20)
+    load_weights_path = "SavedWeights/tile_deep_re1_0531-022135.hdf5"
+    model_input_param = "tile_deep_re1"
+    time = "_" + datetime.datetime.now().strftime("%m%d-%H%M")
+    save_weights_path = "SavedWeights/" + model_input_param + time + ".hdf5"
+    fazeka_model, test_input, test_output = build_train_wrapper(data, deep_vals, tile_images, 
+        load_weights_path=load_weights_path, save_weights_path=save_weights_path, batch_size=5, epochs=2)
     
-    # K.set_learning_phase(0)
-    # test_eval = fazeka_model.evaluate(test_input, test_output, verbose=0)
-    # print('Test loss:', test_eval[0])
-    # print('Test accuracy:', test_eval[1])
+    K.set_learning_phase(0)
+    test_eval = fazeka_model.evaluate(test_input, test_output, verbose=0)
+    print('Test loss:', test_eval[0])
+    print('Test accuracy:', test_eval[1])
+
+    save_test_data_inputs_path = "TestInputs/" + model_input_param + "_input" + time
+    save_test_data_labels_path = "TestInputs/" + model_input_param + "_label" + time
+    mat_dict = {}
+    mat_dict['data'] = test_input
+    scp.io.savemat(save_test_data_inputs_path, mat_dict)
+    mat_dict = {}
+    mat_dict['data'] = test_output
+    scp.io.savemat(save_test_data_labels_path, mat_dict)
 
 if __name__ == '__main__':
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    tf.logging.set_verbosity(tf.logging.ERROR)
     main()
