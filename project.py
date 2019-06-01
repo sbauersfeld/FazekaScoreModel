@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import datetime
 import tensorflow as tf
 import keras
+import nibabel as nib
 import scipy as scp
 
 from sklearn.model_selection import train_test_split
