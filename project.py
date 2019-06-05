@@ -15,6 +15,9 @@ from keras.callbacks import ModelCheckpoint
 
 import keras.backend as K
 
+# This project is available at https://github.com/sbauersfeld/CS168Project
+# Authors: Scott Bauersfeld, Serene Kamal, Meena Nagappan
+
 # The idea of transfer learning as used here is based on the tensorflow tutorial "Transfer Learning Using Pretrained ConvNets"
 # it is publicly available online at: https://www.tensorflow.org/alpha/tutorials/images/transfer_learning 
 def build_model(img_shape, trainable=False, fine_tune_at=165, weights_path=""):
