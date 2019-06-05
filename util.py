@@ -7,10 +7,13 @@ import matplotlib.pyplot as plt
 import xlrd
 import dicom2nifti
 
+# these are the default paths and settings used
 ALL_DATA = 'Data' # The root directory for our data
 PREPROCESSED_DATA = 'Data/Preprocessed/regularized_data'
 NORMALIZED_DATA_Z_SCORES = 'Data/Normalized/normalized_z_scores'
+NORMALIZED_DATA_FCM = 'Data/Normalized/normalized_fcm'
 PREPROCESSED_Z_SCORES = 'Data/Preprocessed/regularized_z_scores'
+PREPROCESSED_FCM = 'Data/Preprocessed/regularized_fcm'
 PREPROCESSED_SEGMENTED = 'Data/Preprocessed/segmented'
 ORIGINAL_DATA = 'Data/Original'
 TEMPLATE_DATA = "Data/GG-366-FLAIR-1.0mm.nii"
@@ -37,10 +40,8 @@ def load_patient_scans(data_path, skip_bottom=SKIP_BOTTOM, skip_top=SKIP_TOP):
     dcmImages = [pydicom.read_file(data_path + '/' + s) for s in os.listdir(data_path)] # read the dicom image
     dcmImages.sort(key = lambda image: image.ImagePositionPatient[2]) # ensure the list is sorted in z-dimension (might not be needed)
     dcmImages = dcmImages[skip_bottom:len(dcmImages)-skip_top]
-    # print(dcmImages[0].ImagePositionPatient[2])
     dcm_scans = [image.pixel_array for image in dcmImages] # get the pixel array from each dicom image
     dcm_scans = np.asarray(dcm_scans, dtype=np.float32)
-    # dcm_scans = np.moveaxis(dcm_scans, 0, 2) # swap axes for inputting data to conv nets
     return dcm_scans
 
 def generate_nifti_images(data_path, skip_bottom=SKIP_BOTTOM, skip_top=SKIP_TOP):
@@ -51,8 +52,8 @@ def generate_nifti_images(data_path, skip_bottom=SKIP_BOTTOM, skip_top=SKIP_TOP)
         if (os.path.isdir(path) == False):
             os.mkdir(path)
         dicom2nifti.convert_directory(os.path.join(dirname,folname), path, compression=True, reorient=True)
-        #files = os.listdir(os.path.join(dirname,folname))
-        #ds_list.append([pydicom.read_file(os.path.join(dirname, folname,file))] for file in files)
+        files = os.listdir(os.path.join(dirname,folname))
+        ds_list.append([pydicom.read_file(os.path.join(dirname, folname,file))] for file in files)
 
 def show_slices(slices):
    # Function to display row of nifti image slices 
@@ -108,60 +109,54 @@ def load_processed_data(data_path):
     data = loadmat(data_path)['data'] # load the data from the mat file
     return data
 
-def load_template_data(path):
+def load_template_data(path, template_bottom=TEMPLATE_BOTTOM, template_top=TEMPLATE_TOP, template_iter=TEMPLATE_ITER):
+    """
+    Load template data to be used as the fixed image in image registration.
+
+    Parameters
+    --------------------
+        path            -- filepath to the template data 
+        template_bottom -- the first template scan to include
+        template_top    -- the last template scan to include
+        template_iter   -- determines how many scans are included: total is floor((template_top-template_bottom)/template_iter)
+    
+    Returns
+    --------------------
+        data        -- numpy array containing the template data
+    """
     img = nib.load(path)
     data = img.get_data()
     _, ext = os.path.splitext(path)
-    print(ext)
     if ext == ".nii": # this is the template version we will be using
         data = data.T # it needs to be formatted correctly
-        data = data[TEMPLATE_BOTTOM:TEMPLATE_TOP:TEMPLATE_ITER] # select the slices we want to use
+        data = data[template_bottom:TEMPLATE_TOP:TEMPLATE_ITER] # select the slices we want to use
         data = np.fliplr(data)
     return data
 
+def multi_slice_subplot(data): # plot all MRI slices on a subplot
+    """
+    Plot 3D image, with each slice on a separate subplot
+        
+    Parameters
+    --------------------
+        volume    -- 3D image to view, with slices along first axis
+    """
+    n,y,x = np.shape(data)
+    x_lim = 4
+    y_lim = int(np.ceil(n/x_lim))
+    f, axarr = plt.subplots(y_lim,x_lim)
+    index = 0
+    for i in range(y_lim):
+        for j in range(x_lim):
+            axarr[i,j].imshow(data[index], cmap='gray')
+            index += 1
+            if index >= n:
+                break
+        if index >= n:
+            break
 
-#     def get_data(data_type):
-#     """
-#     Get training and test data and labels.
-
-#     Parameters
-#     --------------------
-#     data type   -- string of either "dcm" or "mat" specifiying which data to load
-
-#     Returns
-#     --------------------
-#     train input     -- numpy array with shape (n,x,y,m) n training samples for m xy pixel arrays
-#     test input      -- same as train input but with testing data
-#     train output    -- numpy array with shape (n,q) each entry is the labeled fazeka score for the nth patient in one hot encoding
-#     test output     -- same as train output but with testing data
-#     """
-#     if data_type == 'dcm': # choose which data to load/use
-#         data_path = ORIGINAL_DATA
-#         load_func = util.load_patient_scans
-#     elif data_type == 'mat':
-#         data_path = PREPROCESSED_DATA
-#         load_func = util.load_processed_data
-#     else: 
-#         raise Exception("Input to get_data invalid. It must be either \'dcm\' or \'mat\'. It was: {}".format(data_type))
-
-#     all_data_input = np.empty((NUM_PATIENTS), dtype=list)
-#     #all_data_input = np.zeros((NUM_PATIENTS, IMAGE_HEIGHT, IMAGE_WIDTH, NUM_SCANS)) #TODO: use this when values known
-#     all_data_labels = np.zeros((NUM_PATIENTS)) #TODO: Fill in labeled fazeka scores
-#     i=0
-#     for s in os.listdir(data_path):
-#         if i >= NUM_PATIENTS: # use num_patients to limit the amount of data used
-#             break
-
-#         all_data_input[i] = load_func(data_path + '/' + s) # load the data for each patient
-#         i += 1
-
-#     # all_data_input = all_data_input.astype(np.float32)
-#     train_input, test_input, train_output, test_output = train_test_split(all_data_input, all_data_labels, test_size=0.0) # split data into training and testing set
-#     train_output = to_categorical(train_output, num_classes=NUM_CLASSES)
-#     test_output = to_categorical(test_output, num_classes=NUM_CLASSES)
-#     return train_input, test_input, train_output, test_output
-
-
+# The following code is adapted from "DataCamp’s Viewing 3D Volumetric Data With Matplotlib Tutorial"
+# It is publicly available online at: https://www.datacamp.com/community/tutorials/matplotlib-3d-volumetric-data
 def remove_keymap_conflicts(new_keys_set):
     for prop in plt.rcParams:
         if prop.startswith('keymap.'):
@@ -196,47 +191,10 @@ def process_key(event):
 
 def previous_slice(ax):
     volume = ax.volume
-    ax.index = (ax.index - 1) % volume.shape[0]  # wrap around using %
+    ax.index = (ax.index - 1) % volume.shape[0]
     ax.images[0].set_array(volume[ax.index])
 
 def next_slice(ax):
     volume = ax.volume
     ax.index = (ax.index + 1) % volume.shape[0]
     ax.images[0].set_array(volume[ax.index])
-
-def multi_slice_subplot(data): # plot all slices on a subplot
-    """
-    Plot 3D image, with each slice on a separate subplot
-        
-    Parameters
-    --------------------
-        volume    -- 3D image to view, with slices along first axis
-    """
-    n,y,x = np.shape(data)
-    x_lim = 4
-    y_lim = int(np.ceil(n/x_lim))
-    f, axarr = plt.subplots(y_lim,x_lim)
-    index = 0
-    for i in range(y_lim):
-        for j in range(x_lim):
-            axarr[i,j].imshow(data[index], cmap='gray')
-            index += 1
-            if index >= n:
-                break
-        if index >= n:
-            break
-
-# from skimage import segmentation as seg
-# import skimage.color as color
-# from skimage.segmentation import mark_boundaries
-# from skimage import io
-
-# def segment():
-    # inum = 15
-
-    # image_slic = seg.slic(train_input[0][:,:,inum],compactness=0.001,n_segments=1000,multichannel=False,slic_zero=True)
-    # image_slic2 = color.label2rgb(image_slic, train_input[0][:,:,inum], kind='avg')
-    
-    # out = seg.mark_boundaries(image_slic2, image_slic, color=(0,0,1))
-    # plt.imshow(image_slic2,cmap='gray',interpolation=None)
-    # plt.imshow(out, interpolation=None,alpha=0.25)
